@@ -1,6 +1,7 @@
 from django.db import models
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.db.models import Count
 
 
 class Post(models.Model):
@@ -33,15 +34,22 @@ class Post(models.Model):
 
     def get_likes_count(self):
         return self.likes.count()
+    
+
 
     class Meta:
         ordering = ['-published_at']
         verbose_name = 'пост'
         verbose_name_plural = 'посты'
+    
+class TagQuerySet(models.QuerySet):
+    def get_popular_tags(self):
+        return self.annotate(Count('posts')).order_by('-posts__count')
 
 
 class Tag(models.Model):
     title = models.CharField('Тег', max_length=20, unique=True)
+    objects = TagQuerySet.as_manager()
 
     def __str__(self):
         return self.title
