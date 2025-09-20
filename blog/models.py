@@ -1,12 +1,23 @@
 from django.db import models
 from django.urls import reverse
 from django.contrib.auth.models import User
-from django.db.models import Count  
+from django.db.models import Count, Prefetch
 
 class PostQuerySet(models.QuerySet):
 
-    def popular(self):
+    def popular_posts(self):
         return self.annotate(likes_count=Count('likes')).order_by('-likes_count')
+
+    def fetch_with_comments_count(self):
+        posts_ids = [post.id for post in self]
+        comments_with_posts = Post.objects.filter(id__in=posts_ids).\
+            annotate(comments_count=Count('comments'))
+        ids_and_comments = comments_with_posts.\
+            values_list('id', 'comments_count')
+        count_for_id = dict(ids_and_comments)
+        for post in self:
+            post.comments_count = count_for_id[post.id]
+        return self
 
     def prefetch_tags(self):
         prefetch = Prefetch(
@@ -45,8 +56,6 @@ class Post(models.Model):
     def get_absolute_url(self):
         return reverse('post_detail', args={'slug': self.slug})
 
-    def get_likes_count(self):
-        return self.likes.count()
 
     class Meta:
         ordering = ['-published_at']
@@ -97,8 +106,6 @@ class Comment(models.Model):
     text = models.TextField('Текст комментария')
     published_at = models.DateTimeField('Дата и время публикации')
 
-    def __str__(self):
-        return f'{self.author.username} under {self.post.title}'
 
     class Meta:
         ordering = ['published_at']
