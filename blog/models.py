@@ -1,10 +1,23 @@
 from django.db import models
 from django.urls import reverse
 from django.contrib.auth.models import User
-from django.db.models import Count
+from django.db.models import Count  
 
+class PostQuerySet(models.QuerySet):
+
+    def popular(self):
+        return self.annotate(likes_count=Count('likes')).order_by('-likes_count')
+
+    def prefetch_tags(self):
+        prefetch = Prefetch(
+            'tags',
+            queryset=Tag.objects.get_popular_tags()
+    
+        )
+        return self.prefetch_related(prefetch)
 
 class Post(models.Model):
+    objects = PostQuerySet.as_manager()
     title = models.CharField('Заголовок', max_length=200)
     text = models.TextField('Текст')
     slug = models.SlugField('Название в виде url', max_length=200)
@@ -34,14 +47,16 @@ class Post(models.Model):
 
     def get_likes_count(self):
         return self.likes.count()
-    
-
 
     class Meta:
         ordering = ['-published_at']
         verbose_name = 'пост'
         verbose_name_plural = 'посты'
     
+    
+
+
+
 class TagQuerySet(models.QuerySet):
     def get_popular_tags(self):
         return self.annotate(Count('posts')).order_by('-posts__count')
@@ -70,11 +85,14 @@ class Comment(models.Model):
     post = models.ForeignKey(
         'Post',
         on_delete=models.CASCADE,
-        verbose_name='Пост, к которому написан')
+        verbose_name='Пост, к которому написан',
+        related_name='comments'
+        )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name='Автор')
+        verbose_name='Автор',
+        related_name='comments')
 
     text = models.TextField('Текст комментария')
     published_at = models.DateTimeField('Дата и время публикации')
