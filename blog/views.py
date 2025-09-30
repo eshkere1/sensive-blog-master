@@ -99,16 +99,13 @@ def tag_filter(request, tag_title):
     tag = get_object_or_404(Tag, title=tag_title)
 
     most_popular_tags = Tag.objects.get_popular_tags()[:5]
-
-    most_popular_posts = Post.objects.popular_posts() \
-        .prefetch_related('author')[:5] \
-        .prefetch_tags()[:5] \
+    base_queryset = Post.objects.popular_posts() \
+        .prefetch_related('author') \
+        .prefetch_tags() \
         .fetch_with_comments_count()
+    most_popular_posts = base_queryset[:5]
 
-    related_posts = Post.objects.popular_posts() \
-        .prefetch_related('author')[:10] \
-        .prefetch_tags()[:5] \
-        .fetch_with_comments_count()
+    related_posts = base_queryset[:10]
 
     context = {
         'tag': tag.title,
