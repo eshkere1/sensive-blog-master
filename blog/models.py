@@ -9,15 +9,7 @@ class PostQuerySet(models.QuerySet):
         return self.annotate(likes_count=Count('likes')).order_by('-likes_count')
 
     def fetch_with_comments_count(self):
-        posts_ids = [post.id for post in self]
-        comments_with_posts = Post.objects.filter(id__in=posts_ids).\
-            annotate(comments_count=Count('comments'))
-        ids_and_comments = comments_with_posts.\
-            values_list('id', 'comments_count')
-        count_for_id = dict(ids_and_comments)
-        for post in self:
-            post.comments_count = count_for_id[post.id]
-        return self
+        return self.annotate(comments_count=Count('comments'))
 
     def prefetch_tags(self):
         prefetch = Prefetch(
@@ -28,7 +20,6 @@ class PostQuerySet(models.QuerySet):
         return self.prefetch_related(prefetch)
 
 class Post(models.Model):
-    objects = PostQuerySet.as_manager()
     title = models.CharField('Заголовок', max_length=200)
     text = models.TextField('Текст')
     slug = models.SlugField('Название в виде url', max_length=200)
@@ -49,6 +40,8 @@ class Post(models.Model):
         'Tag',
         related_name='posts',
         verbose_name='Теги')
+        
+    objects = PostQuerySet.as_manager()
 
     def __str__(self):
         return self.title

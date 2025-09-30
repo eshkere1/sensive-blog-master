@@ -2,12 +2,14 @@ from django.contrib import admin
 from blog.models import Post, Tag, Comment
 
 
-admin.site.register(Post)
-admin.site.register(Tag)
-admin.site.register(Comment)
+@admin.register(Post)
+@admin.register(Tag)
+@admin.register(Comment)
+
 
 class PostAdmin(admin.ModelAdmin):
     search_fields=['title',]
+
 
 class CommentAdmin(admin.ModelAdmin):
     list_display = ['post', 'author', 'text']
